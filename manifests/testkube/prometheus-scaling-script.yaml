@@ -1,0 +1,35 @@
+apiVersion: tests.testkube.io/v2
+kind: Script
+metadata:
+  name: prometheus-scaling-test
+  namespace: testkube
+  labels:
+    app: kind-keda-lab
+    test-type: prometheus-scaling
+spec:
+  type: k6/script
+  content:
+    type: string
+    data: |
+      import http from 'k6/http';
+      import { check, sleep } from 'k6';
+
+      const WORKLOAD_URL = __ENV.WORKLOAD_URL || 'http://prometheus-workload.lab.svc.cluster.local:8080';
+
+      export const options = {
+        stages: [
+          { duration: '10s', target: 5 },
+          { duration: '30s', target: 5 },
+          { duration: '10s', target: 0 },
+        ],
+        thresholds: {
+          'http_req_duration': ['p(95)<2000'],
+          'http_req_failed': ['rate<0.1'],
+        },
+      };
+
+      export default function () {
+        const res = http.get(`${WORKLOAD_URL}/stats`);
+        check(res, { 'status is 200': (r) => r.status === 200 });
+        sleep(0.2);
+      }

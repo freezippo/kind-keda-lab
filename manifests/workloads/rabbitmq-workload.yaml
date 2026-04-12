@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-producer
+  namespace: lab
+  labels:
+    app: rabbitmq-producer
+    role: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-producer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-producer
+        role: producer
+    spec:
+      containers:
+        - name: producer
+          image: kind-keda-lab-workload:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: MODE
+              value: "rabbitmq"
+            - name: RABBITMQ_ROLE
+              value: "producer"
+            - name: RABBITMQ_URL
+              value: "amqp://guest:guest@rabbitmq.default.svc.cluster.local:5672"
+            - name: SERVER_PORT
+              value: "8080"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-consumer
+  namespace: lab
+  labels:
+    app: rabbitmq-consumer
+    role: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-consumer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-consumer
+        role: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: kind-keda-lab-workload:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: MODE
+              value: "rabbitmq"
+            - name: RABBITMQ_ROLE
+              value: "consumer"
+            - name: RABBITMQ_URL
+              value: "amqp://guest:guest@rabbitmq.default.svc.cluster.local:5672"
+            - name: SERVER_PORT
+              value: "8080"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-producer
+  namespace: lab
+  labels:
+    app: rabbitmq-producer
+spec:
+  selector:
+    app: rabbitmq-producer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-consumer
+  namespace: lab
+  labels:
+    app: rabbitmq-consumer
+spec:
+  selector:
+    app: rabbitmq-consumer
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

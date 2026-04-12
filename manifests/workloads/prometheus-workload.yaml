@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-workload
+  namespace: lab
+  labels:
+    app: prometheus-workload
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-workload
+  template:
+    metadata:
+      labels:
+        app: prometheus-workload
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: workload
+          image: kind-keda-lab-workload:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 8000
+              name: metrics
+              protocol: TCP
+          env:
+            - name: MODE
+              value: "prometheus"
+            - name: METRICS_PORT
+              value: "8000"
+            - name: SERVER_PORT
+              value: "8080"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-workload
+  namespace: lab
+  labels:
+    app: prometheus-workload
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+spec:
+  selector:
+    app: prometheus-workload
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP

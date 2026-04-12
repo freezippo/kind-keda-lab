@@ -1,0 +1,50 @@
+kind: TestWorkflow
+apiVersion: testworkflows.testkube.io/v1
+metadata:
+  name: memory-scaling-test
+  namespace: testkube
+  labels:
+    app: kind-keda-lab
+    test-type: memory-scaling
+spec:
+  content:
+    files:
+      - path: /data/memory-test.js
+        content: |
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+
+          const WORKLOAD_URL = __ENV.WORKLOAD_URL || 'http://memory-workload.lab.svc.cluster.local:8080';
+
+          export const options = {
+            stages: [
+              { duration: '10s', target: 3 },
+              { duration: '30s', target: 3 },
+              { duration: '10s', target: 0 },
+            ],
+            thresholds: {
+              'http_req_duration': ['p(95)<5000'],
+              'http_req_failed': ['rate<0.1'],
+            },
+          };
+
+          export default function () {
+            const payload = JSON.stringify({ memory_mb: 64, hold_time: 5 });
+            const res = http.post(`${WORKLOAD_URL}/memory`, payload, {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: '10s',
+            });
+            check(res, { 'status is 200': (r) => r.status === 200 });
+            sleep(0.5);
+          }
+  steps:
+    - name: Run Memory Scaling Test
+      workingDir: /data
+      run:
+        image: grafana/k6:0.49.0
+        env:
+          - name: WORKLOAD_URL
+            value: "http://memory-workload.lab.svc.cluster.local:8080"
+        args:
+          - run
+          - memory-test.js

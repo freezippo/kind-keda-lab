@@ -1,0 +1,50 @@
+# =============================================================================
+# RabbitMQ Helm Values — Kind-KEDA Lab Environment
+# Minimal configuration for local lab use (single replica, no persistence)
+# =============================================================================
+
+# Use official RabbitMQ image (Bitnami requires auth)
+image:
+  registry: docker.io
+  repository: rabbitmq
+  tag: "3.13-management"
+  pullPolicy: IfNotPresent
+
+# Single replica for lab environment
+replicaCount: 1
+
+# Disable persistence for ephemeral lab
+persistence:
+  enabled: false
+
+# Resource limits for lab environment
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Enable management plugin for monitoring
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+# Authentication
+auth:
+  username: guest
+  password: guest
+  erlangCookie: secretcookie
+
+# Disable TLS for lab
+tls:
+  enabled: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    amqp: 5672
+    management: 15672

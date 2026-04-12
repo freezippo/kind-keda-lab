@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: memory-scaling
+  namespace: lab
+  labels:
+    app: memory-workload
+spec:
+  scaleTargetRef:
+    name: memory-workload
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 300
+  pollingInterval: 15
+  triggers:
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "60"
