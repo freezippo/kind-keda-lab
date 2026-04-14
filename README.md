@@ -403,7 +403,7 @@ flowchart LR
     k6[k6 Load Test] -->|GET /metrics| prom_workload[prometheus-workload<br/>port 8080]
     prom_workload -->|Exposes metrics| svc[Service: prometheus-workload]
     svc -->|Scraped every 15s| prom[Prometheus Server]
-    prom -->|Query: sum(workload_queue_depth_simulation)| keda[KEDA Prometheus Scaler]
+    prom -->|Query: sum by workload_queue_depth_simulation| keda[KEDA Prometheus Scaler]
     keda -->|Scale if > 5| prom_deploy[prometheus-workload<br/>Deployment 1-10 replicas]
 ```
 
